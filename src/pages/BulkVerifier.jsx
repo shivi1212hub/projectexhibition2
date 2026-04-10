@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BulkUploadCard from '../components/BulkUploadCard';
 import { mockBulkResults } from '../data/mockData';
+import { runVerification } from '../services/VerificationEngine';
 import { Shield, CheckCircle, XCircle, BarChart3, Download, FileText, FolderUp } from 'lucide-react';
 
 
@@ -19,17 +20,18 @@ const BulkVerifier = () => {
 
     setIsVerifying(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      const results = uploadedFiles.map((file, index) => {
+    // Deterministic verification for each uploaded file
+    setTimeout(async () => {
+      const results = await Promise.all(uploadedFiles.map(async (file, index) => {
         const mockResult = mockBulkResults[index % mockBulkResults.length];
+        const verification = await runVerification({ file: file.file });
         return {
           ...file,
           ...mockResult,
-          status: Math.random() > 0.3 ? 'valid' : 'fake',
-          confidence: Math.floor(Math.random() * 40) + 60
+          status: verification.status,
+          confidence: verification.score
         };
-      });
+      }));
       
       setVerificationResults(results);
       setIsVerifying(false);

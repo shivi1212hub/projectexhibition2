@@ -73,22 +73,29 @@ const VerifierUpload = () => {
   }
 
   const handleVerify = async () => {
-    if (!selectedFile) return
-
-
+    if (!selectedFile && !ocrDetails) return
     setIsVerifying(true)
 
-    // Simulate verification process
-    setTimeout(() => {
+    try {
+      const result = await runVerification({
+        file: selectedFile,
+        ocr: ocrDetails || mockOCRDetails
+      })
+
       setIsVerifying(false)
       navigate('/verifier/result', {
         state: {
           file: selectedFile,
-          ocrDetails: mockOCRDetails,
-          isValid: Math.random() > 0.3 // 70% chance of being valid
+          ocrDetails: result.ocrDetails || ocrDetails || mockOCRDetails,
+          isValid: result.isValid,
+          score: result.score,
+          flags: result.flags
         }
       })
-    }, 2000)
+    } catch (error) {
+      setIsVerifying(false)
+      alert('Verification failed. Please try again.')
+    }
 
   }
 
@@ -197,9 +204,9 @@ const VerifierUpload = () => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleVerify}
-              disabled={!selectedFile || isVerifying}
+              disabled={(!selectedFile && !ocrDetails) || isVerifying}
               className={`w-full mt-6 p-2 rounded-md ${
-                selectedFile && !isVerifying
+                (selectedFile || ocrDetails) && !isVerifying
 
                   ? 'btn-primary'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
